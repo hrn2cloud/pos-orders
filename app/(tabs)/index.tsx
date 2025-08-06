@@ -26,8 +26,7 @@ type Order = {
   paymentState: string;
   note?: string;
   lineItems?: { elements: LineItem[] };
-  createdDate?: string;
-  createdTime?: number; // UNIX timestamp in ms
+  createdTime: number;
 };
 
 const orderStates = [
@@ -70,30 +69,10 @@ export default function HomeScreen() {
   );
 
   const renderOrder = ({ item }: { item: Order }) => {
-    let createdDisplay = 'N/A';
-    if (item.createdTime) {
-      createdDisplay = new Date(item.createdTime).toLocaleString('en-US', {
+    let createdDisplay = new Date(item.createdTime).toLocaleString('en-US', {
         timeZone: 'America/Chicago',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-      });
-    } else if (item.createdDate) {
-      createdDisplay = new Date(item.createdDate).toLocaleString('en-US', {
-        timeZone: 'America/Chicago',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-      });
-    }
+    });
+    
     return (
       <View style={styles.orderContainer}>
         <Text style={styles.orderTitle}>Order ID: {item.id}</Text>
