@@ -1,7 +1,7 @@
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
-import storesConfig from '../../constants/stores.config.json'; 
+import storesConfig from '../../constants/stores.config.json';
 
 const stores: Store[] = storesConfig;
 type Store = {
@@ -26,6 +26,7 @@ type Order = {
   paymentState: string;
   note?: string;
   lineItems?: { elements: LineItem[] };
+  createdTime: number;
 };
 
 const orderStates = [
@@ -67,26 +68,33 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderOrder = ({ item }: { item: Order }) => (
-    <View style={styles.orderContainer}>
-      <Text style={styles.orderTitle}>Order ID: {item.id}</Text>
-      <Text>Title: {item.title}</Text>
-      <Text>Total: ${(item.total / 100).toFixed(2)}</Text>
-      <Text>Payment State: {item.paymentState}</Text>
-      <Text>Note: {item.note}</Text>
-      <Text style={styles.lineItemsHeader}>Line Items:</Text>
-      <View style={styles.lineItemHeaderRow}>
-        <Text style={styles.headerCell}>Name</Text>
-        <Text style={styles.headerCell}>Price</Text>
-        <Text style={styles.headerCell}>Printed</Text>
+  const renderOrder = ({ item }: { item: Order }) => {
+    let createdDisplay = new Date(item.createdTime).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+    });
+    
+    return (
+      <View style={styles.orderContainer}>
+        <Text style={styles.orderTitle}>Order ID: {item.id}</Text>
+        <Text>Title: {item.title}</Text>
+        <Text>Total: ${(item.total / 100).toFixed(2)}</Text>
+        <Text>Payment State: {item.paymentState}</Text>
+        <Text>Note: {item.note}</Text>
+        <Text>Created Date: {createdDisplay}</Text>
+        <Text style={styles.lineItemsHeader}>Line Items:</Text>
+        <View style={styles.lineItemHeaderRow}>
+          <Text style={styles.headerCell}>Name</Text>
+          <Text style={styles.headerCell}>Price</Text>
+          <Text style={styles.headerCell}>Printed</Text>
+        </View>
+        <FlatList
+          data={item.lineItems?.elements || []}
+          keyExtractor={(li) => li.id}
+          renderItem={renderLineItem}
+        />
       </View>
-      <FlatList
-        data={item.lineItems?.elements || []}
-        keyExtractor={(li) => li.id}
-        renderItem={renderLineItem}
-      />
-    </View>
-  );
+    );
+  };
 
   return (
   <View style={styles.container}>
