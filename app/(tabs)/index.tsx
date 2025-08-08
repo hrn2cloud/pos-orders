@@ -1,7 +1,8 @@
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import storesConfig from '../../constants/stores.config.json';
+
 
 const stores: Store[] = storesConfig;
 type Store = {
@@ -38,8 +39,38 @@ export default function HomeScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [selectedState, setSelectedState] = useState<string>('');
+  const [selectedState, setSelectedState] = useState<string>('&filter=state%3Dopen');
   
+  function hasUnprintedItems(order: Order): boolean {
+    return (order.lineItems?.elements || []).some(item => !item.printed);
+  }
+
+  async function handlePrint(order: Order, store: Store) {
+    try {
+      const response = await fetch(
+        `https://api.clover.com/v3/merchants/${store.id}/print_event`,
+        {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            Authorization: `Bearer ${store.accessToken}`,
+          },
+          body: JSON.stringify({
+            orderRef: { id: order.id },
+          }),
+        }
+      );
+      if (response.ok) {
+        alert('Print event sent!');
+      } else {
+        alert('Print failed');
+      }
+    } catch (e) {
+      alert('Print error');
+    }
+  }
+
   useEffect(() => {
     if (!selectedStore) return;
     setLoading(true);
@@ -72,9 +103,17 @@ export default function HomeScreen() {
     let createdDisplay = new Date(item.createdTime).toLocaleString('en-US', {
         timeZone: 'America/Chicago',
     });
-    
+
     return (
       <View style={styles.orderContainer}>
+        {selectedStore && (
+          <Button
+            title="Print"
+            onPress={() => handlePrint(item, selectedStore)}
+            color="#007bff"
+            disabled={!hasUnprintedItems(item)}
+          />
+        )}
         <Text style={styles.orderTitle}>Order ID: {item.id}</Text>
         <Text>Title: {item.title}</Text>
         <Text>Total: ${(item.total / 100).toFixed(2)}</Text>
@@ -98,7 +137,14 @@ export default function HomeScreen() {
 
   return (
   <View style={styles.container}>
-    <Text style={styles.title}>Orders</Text>
+    <View style={styles.header}>
+      <Image
+        source={require('../../assets/images/spice-mantra.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <Text style={styles.pageHeader}>Spice Mantra Orders</Text>
+    </View>
     <View style={styles.row}>
       <Text style={styles.label}>Select Store:</Text>
       <Picker
@@ -154,4 +200,20 @@ const styles = StyleSheet.create({
   lineItemRow: { flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 0.5, borderColor: '#eee' },
   cell: { flex: 1, color: '#222' },
   noPrinted: { color: 'red', fontWeight: 'bold' },
+  printButton: { marginVertical: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logo: {
+    width: 200,
+    height: 65,
+    marginRight: 12,
+  },
+  pageHeader: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#222',
+  },
 });
