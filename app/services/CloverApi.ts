@@ -1,6 +1,7 @@
-import { Order, SocialUser, Store, POSEmployee } from '../types';
+import Constants from 'expo-constants';
+import { Order, POSEmployee, SocialUser, Store } from '../types';
 
-const API_BASE_URL = 'https://api.clover.com/v3/merchants';
+const API_BASE_URL = Constants.expoConfig?.extra?.CLOVER_API_BASE_URL;
 
 export async function printOrder(order: Order, store: Store) {
     try {

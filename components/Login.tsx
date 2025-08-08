@@ -1,5 +1,6 @@
 import { SocialUser } from '@/app/types';
 import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect } from 'react';
 import { Button, Text, View } from 'react-native';
@@ -8,7 +9,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function Login({ onLogin }: { onLogin?: (socialUser: SocialUser) => void }) {
     const [request, response, promptAsync] = Google.useAuthRequest({
-        clientId: '1096339153325-5psbo6c2arvi3rmfdf29l6vbsc9q8q4b.apps.googleusercontent.com',
+        clientId: Constants.expoConfig?.extra?.GOOGLE_CLIENT_ID,
         scopes: ['profile', 'email'],
     });
 
