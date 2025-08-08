@@ -1,34 +1,14 @@
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Button, FlatList, Image, Text, View } from 'react-native';
+import Login from '../../components/Login';
 import storesConfig from '../../constants/stores.config.json';
-
+import { printOrder, hasUnprintedItems, fetchOrders, getEmployeeData } from '../services/CloverApi';
+import { LineItem, Order, POSEmployee, SocialUser, Store } from '../types';
+import { styles } from './HomeScreen.styles';
 
 const stores: Store[] = storesConfig;
-type Store = {
-  id: string;
-  name: string;
-  employeeId: string;
-  accessToken: string;
-};
 
-type LineItem = {
-  id: string;
-  name: string;
-  price: number;
-  note?: string;
-  printed: boolean;
-};
-
-type Order = {
-  id: string;
-  title: string;
-  total: number;
-  paymentState: string;
-  note?: string;
-  lineItems?: { elements: LineItem[] };
-  createdTime: number;
-};
 
 const orderStates = [
   { label: 'All', value: '' },
@@ -36,54 +16,26 @@ const orderStates = [
 ];
 
 export default function HomeScreen() {
+  const [socialUser, setSocialUser] = useState<SocialUser | null>(null);
+  const [employee, setEmployee] = useState<POSEmployee | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [selectedState, setSelectedState] = useState<string>('&filter=state%3Dopen');
-  
-  function hasUnprintedItems(order: Order): boolean {
-    return (order.lineItems?.elements || []).some(item => !item.printed);
-  }
-
-  async function handlePrint(order: Order, store: Store) {
-    try {
-      const response = await fetch(
-        `https://api.clover.com/v3/merchants/${store.id}/print_event`,
-        {
-          method: 'POST',
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-            Authorization: `Bearer ${store.accessToken}`,
-          },
-          body: JSON.stringify({
-            orderRef: { id: order.id },
-          }),
-        }
-      );
-      if (response.ok) {
-        alert('Print event sent!');
-      } else {
-        alert('Print failed');
-      }
-    } catch (e) {
-      alert('Print error');
-    }
-  }
 
   useEffect(() => {
-    if (!selectedStore) return;
+    if (socialUser && selectedStore) {
+      getEmployeeData(socialUser, selectedStore)
+        .then(posEmployee => setEmployee(posEmployee))
+    }
+  }, [socialUser, selectedStore]);
+
+  useEffect(() => {
+    if (!selectedStore || !employee) return;
     setLoading(true);
-    const url = `https://api.clover.com/v3/merchants/${selectedStore.id}/orders?filter=employee.id%3D${selectedStore.employeeId}&expand=lineItems${selectedState}`;
-    fetch(url, {
-      headers: {
-        accept: 'application/json',
-        authorization: `Bearer ${selectedStore.accessToken}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((json) => setOrders(json.elements || []))
-      .catch((error) => console.error(error))
+    fetchOrders(selectedStore, selectedState, employee)
+      .then((data) => setOrders(data))
+      .catch((error) => console.error("Failed to load orders:", error))
       .finally(() => setLoading(false));
   }, [selectedStore, selectedState]);
 
@@ -92,16 +44,16 @@ export default function HomeScreen() {
       <Text style={styles.cell}>{item.name}</Text>
       <Text style={styles.cell}>${(item.price / 100).toFixed(2)}</Text>
       {item.printed ? (
-      <Text style={styles.cell}>Yes</Text>
-    ) : (
-      <Text style={[styles.cell, styles.noPrinted]}>No</Text>
-    )}
+        <Text style={styles.cell}>Yes</Text>
+      ) : (
+        <Text style={[styles.cell, styles.noPrinted]}>No</Text>
+      )}
     </View>
   );
 
   const renderOrder = ({ item }: { item: Order }) => {
     let createdDisplay = new Date(item.createdTime).toLocaleString('en-US', {
-        timeZone: 'America/Chicago',
+      timeZone: 'America/Chicago',
     });
 
     return (
@@ -109,7 +61,7 @@ export default function HomeScreen() {
         {selectedStore && (
           <Button
             title="Print"
-            onPress={() => handlePrint(item, selectedStore)}
+            onPress={() => printOrder(item, selectedStore)}
             color="#007bff"
             disabled={!hasUnprintedItems(item)}
           />
@@ -136,84 +88,66 @@ export default function HomeScreen() {
   };
 
   return (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <Image
-        source={require('../../assets/images/spice-mantra.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <Text style={styles.pageHeader}>Spice Mantra Orders</Text>
-    </View>
-    <View style={styles.row}>
-      <Text style={styles.label}>Select Store:</Text>
-      <Picker
-        selectedValue={selectedStore?.id}
-        onValueChange={(storeId) => {
-          const store = stores.find(s => s.id === storeId) || null;
-          setSelectedStore(store);
-        }}
-        style={styles.picker}
-      >
-        <Picker.Item label="Select Store" value={null} />
-        {stores.map((store) => (
-          <Picker.Item key={store.id} label={store.name} value={store.id} />
-        ))}
-      </Picker>
-    </View>
-    <View style={styles.row}>
-      <Text style={styles.label}>Order State:</Text>
-      <Picker
-        selectedValue={selectedState}
-        onValueChange={(value) => setSelectedState(value)}
-        style={styles.picker}
-      >
-        {orderStates.map((state) => (
-          <Picker.Item key={state.label} label={state.label} value={state.value} />
-        ))}
-      </Picker>
-    </View>
-    {loading ? (
-      <ActivityIndicator />
-    ) : (
-      <FlatList
-        data={orders}
-        keyExtractor={(order) => order.id}
-        renderItem={renderOrder}
-      />
-    )}
-  </View>
-);
-}
+    <>
+      {!socialUser ? (
+        <Login onLogin={setSocialUser} />
+      ) : (
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, marginTop: 40, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, color: '#222' },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  label: { fontWeight: 'bold', color: '#222', marginRight: 8 },
-  picker: { width: 100, height: 40 },
-  orderContainer: { marginBottom: 32, padding: 12, borderWidth: 1, borderRadius: 8, borderColor: '#ccc', backgroundColor: '#f9f9f9' },
-  orderTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 4, color: '#222' },
-  lineItemsHeader: { marginTop: 8, fontWeight: 'bold', color: '#222' },
-  lineItemHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, paddingBottom: 4, marginTop: 4, borderColor: '#ccc' },
-  headerCell: { flex: 1, fontWeight: 'bold', color: '#222' },
-  lineItemRow: { flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 0.5, borderColor: '#eee' },
-  cell: { flex: 1, color: '#222' },
-  noPrinted: { color: 'red', fontWeight: 'bold' },
-  printButton: { marginVertical: 8 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logo: {
-    width: 200,
-    height: 65,
-    marginRight: 12,
-  },
-  pageHeader: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#222',
-  },
-});
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <View style={styles.header}>
+              <Image
+                source={require('../../assets/images/spice-mantra.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={styles.pageHeader}>Spice Mantra Orders</Text>
+            </View>
+            <View style={styles.employeeInfoContainer}>
+              <Text style={styles.employeeInfoText}>Email: {socialUser.email}</Text>
+              <Text style={styles.employeeInfoText}>Employee ID: {socialUser.id}</Text>
+              <Text style={styles.employeePOSIDInfoText}>POS ID: {employee?.id}</Text>
+              <Text style={styles.employeePOSIDInfoText}>POS Employee Name: {employee?.name}</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Select Store:</Text>
+            <Picker
+              selectedValue={selectedStore?.id}
+              onValueChange={(storeId) => {
+                const store = stores.find(s => s.id === storeId) || null;
+                setSelectedStore(store);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select Store" value={null} />
+              {stores.map((store) => (
+                <Picker.Item key={store.id} label={store.name} value={store.id} />
+              ))}
+            </Picker>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Order State:</Text>
+            <Picker
+              selectedValue={selectedState}
+              onValueChange={(value) => setSelectedState(value)}
+              style={styles.picker}
+            >
+              {orderStates.map((state) => (
+                <Picker.Item key={state.label} label={state.label} value={state.value} />
+              ))}
+            </Picker>
+          </View>
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            <FlatList
+              data={orders}
+              keyExtractor={(order) => order.id}
+              renderItem={renderOrder}
+            />
+          )}
+        </View>)}
+    </>
+  );
+}
