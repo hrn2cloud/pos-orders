@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Button, FlatList, Image, Text, View } from 'react-native';
 import Login from '../../components/Login';
 import storesConfig from '../../constants/stores.config.json';
-import { printOrder, hasUnprintedItems, fetchOrders, getEmployeeData } from '../services/CloverApi';
-import { LineItem, Order, POSEmployee, SocialUser, Store } from '../types';
-import { styles } from './HomeScreen.styles';
+import { printOrder, hasUnprintedItems, fetchOrders, getEmployeeData } from '../../src/services/CloverApi';
+import { LineItem, Order, POSEmployee, SocialUser, Store } from '../../src/types';
+import { styles } from '../../src/styles/HomeScreen.styles';
 
 const stores: Store[] = storesConfig;
 

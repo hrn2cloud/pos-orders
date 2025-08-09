@@ -1,10 +1,14 @@
-import { Link, Stack } from 'expo-router';
+import { Link, Stack, usePathname } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function NotFoundScreen() {
+  const pathname = usePathname();
+
+  // Log the URL that caused this screen to load
+  console.log('Not Found Screen Loaded for URL:', pathname);
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
