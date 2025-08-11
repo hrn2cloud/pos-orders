@@ -1,4 +1,4 @@
-import { SocialUser } from '@/app/types';
+import { SocialUser } from '../src/types';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
