@@ -39,3 +39,5 @@ yarn-error.*
 app-example
 constants/stores.config.json
 .env
+.vscode/
+.idea/
