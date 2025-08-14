@@ -78,15 +78,11 @@ export async function getEmployeeData(socialuser: SocialUser, store: Store): Pro
         }
 
         const data = await response.json();
-
-        // Check if the employee was found
         if (data.elements && data.elements.length > 0) {
-            // Employee found, you can get their ID and other details here
             const employee = data.elements[0];
             console.log('Employee found:', employee);
             return employee;
         } else {
-            // Employee not found, show the error message
             alert(`Your email ${socialuser.email} is not exist in restaurant POS`);
             return null;
         }
