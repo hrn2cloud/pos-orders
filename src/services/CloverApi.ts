@@ -1,12 +1,12 @@
 import Constants from 'expo-constants';
 import { Order, POSEmployee, SocialUser, Store } from '../types';
 
-const API_BASE_URL = Constants.expoConfig?.extra?.CLOVER_API_BASE_URL;
+const API_PROXY_BASE_URL = '/api/clover';
 
 export async function printOrder(order: Order, store: Store) {
     try {
         const response = await fetch(
-            `${API_BASE_URL}/${store.id}/print_event`,
+            `${API_PROXY_BASE_URL}?merchantId=${store.id}&action=print_event`,
             {
                 method: 'POST',
                 headers: {
@@ -17,6 +17,7 @@ export async function printOrder(order: Order, store: Store) {
                 body: JSON.stringify({
                     orderRef: { id: order.id },
                 }),
+                referrerPolicy: 'no-referrer',
             }
         );
         if (response.ok) {
@@ -40,12 +41,13 @@ export async function fetchOrders(store: Store, selectedState: string, employee 
     }
 
     try {
-        const url = `${API_BASE_URL}/${store.id}/orders?filter=employee.id%3D${employee.id}&expand=lineItems${selectedState}`;
+        const url = `${API_PROXY_BASE_URL}?merchantId=${store.id}&action=orders&filter=employee.id%3D${employee.id}&expand=lineItems${selectedState}`;
         const response = await fetch(url, {
             headers: {
                 accept: 'application/json',
                 authorization: `Bearer ${store.accessToken}`,
             },
+            referrerPolicy: 'no-referrer',
         });
 
         if (!response.ok) {
@@ -63,13 +65,14 @@ export async function fetchOrders(store: Store, selectedState: string, employee 
 export async function getEmployeeData(socialuser: SocialUser, store: Store): Promise<POSEmployee | null> {
     try {
         const response = await fetch(
-            `${API_BASE_URL}/${store.id}/employees?filter=email=${socialuser.email}`,
+            `${API_PROXY_BASE_URL}?merchantId=${store.id}&action=employees&filter=email=${socialuser.email}`,
             {
                 method: 'GET',
                 headers: {
                     accept: 'application/json',
                     Authorization: `Bearer ${store.accessToken}`,
                 },
+                referrerPolicy: 'no-referrer',
             }
         );
 
@@ -78,15 +81,11 @@ export async function getEmployeeData(socialuser: SocialUser, store: Store): Pro
         }
 
         const data = await response.json();
-
-        // Check if the employee was found
         if (data.elements && data.elements.length > 0) {
-            // Employee found, you can get their ID and other details here
             const employee = data.elements[0];
             console.log('Employee found:', employee);
             return employee;
         } else {
-            // Employee not found, show the error message
             alert(`Your email ${socialuser.email} is not exist in restaurant POS`);
             return null;
         }
