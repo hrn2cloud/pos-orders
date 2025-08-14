@@ -1,12 +1,12 @@
 import Constants from 'expo-constants';
 import { Order, POSEmployee, SocialUser, Store } from '../types';
 
-const API_PROXY_BASE_URL = '/api/clover';
+const API_BASE_URL = Constants.expoConfig?.extra?.CLOVER_API_BASE_URL;
 
 export async function printOrder(order: Order, store: Store) {
     try {
         const response = await fetch(
-            `${API_PROXY_BASE_URL}?merchantId=${store.id}&action=print_event`,
+            `${API_BASE_URL}/${store.id}/print_event`,
             {
                 method: 'POST',
                 headers: {
@@ -17,7 +17,6 @@ export async function printOrder(order: Order, store: Store) {
                 body: JSON.stringify({
                     orderRef: { id: order.id },
                 }),
-                referrerPolicy: 'no-referrer',
             }
         );
         if (response.ok) {
@@ -41,13 +40,12 @@ export async function fetchOrders(store: Store, selectedState: string, employee 
     }
 
     try {
-        const url = `${API_PROXY_BASE_URL}?merchantId=${store.id}&action=orders&filter=employee.id%3D${employee.id}&expand=lineItems${selectedState}`;
+        const url = `${API_BASE_URL}/${store.id}/orders?filter=employee.id%3D${employee.id}&expand=lineItems${selectedState}`;
         const response = await fetch(url, {
             headers: {
                 accept: 'application/json',
                 authorization: `Bearer ${store.accessToken}`,
             },
-            referrerPolicy: 'no-referrer',
         });
 
         if (!response.ok) {
@@ -65,14 +63,13 @@ export async function fetchOrders(store: Store, selectedState: string, employee 
 export async function getEmployeeData(socialuser: SocialUser, store: Store): Promise<POSEmployee | null> {
     try {
         const response = await fetch(
-            `${API_PROXY_BASE_URL}?merchantId=${store.id}&action=employees&filter=email=${socialuser.email}`,
+            `${API_BASE_URL}/${store.id}/employees?filter=email=${socialuser.email}`,
             {
                 method: 'GET',
                 headers: {
                     accept: 'application/json',
                     Authorization: `Bearer ${store.accessToken}`,
                 },
-                referrerPolicy: 'no-referrer',
             }
         );
 
