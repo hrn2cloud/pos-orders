@@ -33,11 +33,12 @@ jobs:
           service_account: ${{ env.SERVICE_ACCOUNT }}
 
       - name: Set up Docker
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker gcr.io
 
       - name: Build and push UI Docker image
         run: |
-          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE_NAME }}:${{ github.sha }} . \
+          docker build . \
+           --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE_NAME }}:${{ github.sha }} \
            --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
            --build-arg CLOVER_API_BASE_URL=${{ secrets.CLOVER_API_BASE_URL }} \
            --build-arg STORES_CONFIG=${{ secrets.STORES_CONFIG }}
