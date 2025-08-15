@@ -7,8 +7,10 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE_NAME: pos-orders-ui
-  IMAGE_NAME: pos-orders-ui
+  UI_SERVICE_NAME: pos-orders-ui
+  UI_IMAGE_NAME: pos-orders-ui
+  API_SERVICE_NAME: pos-orders-api
+  API_IMAGE_NAME: pos-orders-api
   SERVICE_ACCOUNT: ${{ secrets.WORK_LOAD_GCP_SERVICE_ACCOUNT }}
   WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 jobs:
@@ -33,14 +35,29 @@ jobs:
       - name: Set up Docker
         run: gcloud auth configure-docker
 
-      - name: Build and push Docker image
+      - name: Build and push UI Docker image
         run: |
-          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE_NAME }}:${{ github.sha }} . \
+           --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+           --build-arg CLOVER_API_BASE_URL=${{ secrets.CLOVER_API_BASE_URL }} \
+           --build-arg STORES_CONFIG=${{ secrets.STORES_CONFIG }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Deploy to Cloud Run
+      - name: Deploy UI to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
-          service: ${{ env.SERVICE_NAME }}
-          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          service: ${{ env.UI_SERVICE_NAME }}
+          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.UI_IMAGE_NAME }}:${{ github.sha }}
           region: us-central1
+
+      - name: Build and push API Docker image
+        run: |
+          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }} server/. 
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy API to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.API_SERVICE_NAME }}
+          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
+          region: us-central1          
