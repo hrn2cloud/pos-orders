@@ -34,7 +34,7 @@ export function hasUnprintedItems(order: Order): boolean {
 }
 
 export async function fetchOrders(store: Store, selectedState: string, employee : POSEmployee): Promise<Order[]> {
-    if (!store || !store.id || !store.employeeId || !store.accessToken) {
+    if (!store || !store.id || !employee.id || !store.accessToken) {
         console.error('Invalid store data provided to fetchOrders');
         return [];
     }

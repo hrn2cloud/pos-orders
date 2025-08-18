@@ -41,3 +41,5 @@ constants/stores.config.json
 .env
 .vscode/
 .idea/
+
+server/package-lock.json
