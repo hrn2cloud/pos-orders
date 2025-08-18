@@ -4,6 +4,8 @@ import { ActivityIndicator, Button, FlatList, Image, Text, View } from 'react-na
 import Login from '../../components/Login';
 import stores from '../../src/config/stores';
 import { printOrder, hasUnprintedItems, fetchOrders, getEmployeeData } from '../../src/services/CloverApi';
+
+const printEventCache: { [orderId: string]: string | undefined } = {};
 import { LineItem, Order, POSEmployee, SocialUser, Store } from '../../src/types';
 import { styles } from '../../src/styles/HomeScreen.styles';
 
@@ -53,14 +55,27 @@ export default function HomeScreen() {
       timeZone: 'America/Chicago',
     });
 
+    const isOpenOrder = selectedState.includes('open');
+    const hasUnprinted = hasUnprintedItems(item);
+    const hasPrintEventId = !!printEventCache[item.id];
+    const isPrintEnabled = isOpenOrder && hasUnprinted && !hasPrintEventId;
+
+    const handlePrint = async () => {
+      if (!selectedStore) return;
+      const eventId = await printOrder(item, selectedStore);
+      if (eventId) {
+        printEventCache[item.id] = eventId;
+      }
+    };
+
     return (
       <View style={styles.orderContainer}>
         {selectedStore && (
           <Button
             title="Print"
-            onPress={() => printOrder(item, selectedStore)}
+            onPress={handlePrint}
             color="#007bff"
-            disabled={!hasUnprintedItems(item)}
+            disabled={!isPrintEnabled}
           />
         )}
         <Text style={styles.orderTitle}>Order ID: {item.id}</Text>
